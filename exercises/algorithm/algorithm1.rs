@@ -2,7 +2,6 @@
 	single linked list merge
 	This problem requires you to merge two ordered singly linked lists into one ordered singly linked list
 */
-// I AM NOT DONE
 
 use std::fmt::{self, Display, Formatter};
 use std::ptr::NonNull;
@@ -69,14 +68,58 @@ impl<T> LinkedList<T> {
             },
         }
     }
-	pub fn merge(list_a:LinkedList<T>,list_b:LinkedList<T>) -> Self
+	pub fn merge(mut list_a: LinkedList<T>, mut list_b: LinkedList<T>) -> Self
+	where
+		T: PartialOrd,
 	{
-		//TODO
-		Self {
-            length: 0,
-            start: None,
-            end: None,
-        }
+		// Reclaim every node of a list as an owned value, freeing the heap boxes.
+		fn take_values<T>(list: &mut LinkedList<T>) -> Vec<T> {
+			let mut values = Vec::new();
+			let mut current = list.start.take();
+			list.end = None;
+			list.length = 0;
+			while let Some(node_ptr) = current {
+				let node = unsafe { *Box::from_raw(node_ptr.as_ptr()) };
+				let next = node.next;
+				values.push(node.val);
+				current = next;
+			}
+			values
+		}
+
+		let values_a = take_values(&mut list_a);
+		let values_b = take_values(&mut list_b);
+
+		let mut merged = Self::new();
+		let mut iter_a = values_a.into_iter();
+		let mut iter_b = values_b.into_iter();
+		let mut next_a = iter_a.next();
+		let mut next_b = iter_b.next();
+		loop {
+			match (next_a.take(), next_b.take()) {
+				(Some(a), Some(b)) => {
+					if a <= b {
+						merged.add(a);
+						next_b = Some(b);
+						next_a = iter_a.next();
+					} else {
+						merged.add(b);
+						next_a = Some(a);
+						next_b = iter_b.next();
+					}
+				}
+				(Some(a), None) => {
+					merged.add(a);
+					next_a = iter_a.next();
+				}
+				(None, Some(b)) => {
+					merged.add(b);
+					next_b = iter_b.next();
+				}
+				(None, None) => break,
+			}
+		}
+		merged
 	}
 }
 
